@@ -22,6 +22,18 @@
   font-size: large;
 }
 
+/* .fc-day-today {
+  background-color: #222;
+} */
+
+.fc .fc-timegrid-col.fc-day-today {
+  background-color: #fbeaea;
+}
+
+.fc .fc-daygrid-day.fc-day-today {
+  background-color: #fbeaea;
+}
+
 @keyframes App-logo-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }

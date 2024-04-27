@@ -37,6 +37,12 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import { INITIAL_EVENTS, createEventId } from './event-utils'
+import 'bootswatch/dist/journal/bootstrap.min.css'; // Added this :boom:
+import 'bootstrap-icons/font/bootstrap-icons.css'; // needs additional webpack config!
+
+import { Calendar } from '@fullcalendar/core';
+import bootstrap5Plugin from '@fullcalendar/bootstrap5';
+import './App.css'
 
 export default function App() {
   const [weekendsVisible, setWeekendsVisible] = useState(true)
@@ -82,17 +88,21 @@ export default function App() {
       />
       <div className='demo-app-main'>
         <FullCalendar
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, bootstrap5Plugin]}
           headerToolbar={{
             left: 'prev,next today',
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay'
           }}
-          initialView='dayGridMonth'
+          initialView='timeGridDay'
           editable={true}
           selectable={true}
           selectMirror={true}
           dayMaxEvents={true}
+          eventBackgroundColor='#de6666'
+          eventBorderColor='white'
+          longPressDelay={500}
+          themeSystem='bootstrap5'
           weekends={weekendsVisible}
           initialEvents={INITIAL_EVENTS} // alternatively, use the `events` setting to fetch from a feed
           select={handleDateSelect}
