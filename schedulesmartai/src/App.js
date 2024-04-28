@@ -24,6 +24,12 @@ const theme = createTheme({
       contrastText: '#fff',
     }
   },
+  typography: {
+    button: {
+      textTransform: "none",
+      fontWeight: "bold"
+    }
+  }
 },
 );
 
@@ -350,7 +356,7 @@ function CurrentTasks({ messages, setMessages }) {
         // id="messageBox"
         />
         <Button variant="contained" type="submit" size="medium" style={{ marginLeft: "8px" }} disabled={!newMessage}>
-          Send
+          send
         </Button>
         </ThemeProvider>
       </form>
