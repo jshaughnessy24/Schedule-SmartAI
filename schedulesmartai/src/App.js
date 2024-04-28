@@ -8,11 +8,24 @@ import { INITIAL_EVENTS, createEventId } from './event-utils'
 import 'bootswatch/dist/journal/bootstrap.min.css'; // Added this :boom:
 import 'bootstrap-icons/font/bootstrap-icons.css'; // needs additional webpack config!
 
-import { Calendar } from '@fullcalendar/core';
 import bootstrap5Plugin from '@fullcalendar/bootstrap5';
 import './App.css'
 import { Button, TextField } from '@mui/material'
 import { useRef } from 'react';
+
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+
+const theme = createTheme({
+  palette: {
+    primary: {
+      light: '#de6666',
+      main: '#de6666',
+      dark: '#de6666',
+      contrastText: '#fff',
+    }
+  },
+},
+);
 
 export default function App() {
   const [weekendsVisible, setWeekendsVisible] = useState(true)
@@ -51,43 +64,47 @@ export default function App() {
         eventEnd.setMinutes(eventEnd.getMinutes() + 30);
         
 
-        if (!eventTitles.includes(currentTask.text)) {
-          while (true) {
-            let noConflicts = true
-            for (let i = 0; i < eventStarts.length; i++) {
-              if ((eventEnd >= eventStarts[i] && eventStart <= eventEnds[i])) {
-                noConflicts = false
-                console.log("event end", eventEnd)
-                console.log("eventsStart", eventStarts[i])
-                console.log("event start", eventStart)
-                console.log("eventsEnd", eventEnds[i])
-                console.log("conflict occured")
-                break;
-              }
-            }
-            if (noConflicts) {
-              console.log("got here")
-              calendarRef.current.getApi().addEvent({
-                id: createEventId(),
-                title: currentTask.text,
-                start: eventStart,
-                end: eventEnd,
-                allDay: false
-              })
-              eventStarts.push(eventStart)
-              eventEnds.push(eventEnd)
-              break;
-            } else {
-              eventStart.setMinutes(eventStart.getMinutes() + 30)
-              eventEnd.setMinutes(eventEnd.getMinutes() + 30)
-            }
-          }
-        }
+        addTaskWithoutConflicts(eventTitles, currentTask, eventStarts, eventEnd, eventStart, eventEnds)
       }
 
       console.log(eventTitles)
     }
     setAddingTasks(!addingTasks)
+  }
+
+  function addTaskWithoutConflicts(eventTitles, currentTask, eventStarts, eventEnd, eventStart, eventEnds) {
+    if (!eventTitles.includes(currentTask.text)) {
+      while (true) {
+        let noConflicts = true
+        for (let i = 0; i < eventStarts.length; i++) {
+          if ((eventEnd >= eventStarts[i] && eventStart <= eventEnds[i])) {
+            noConflicts = false
+            console.log("event end", eventEnd)
+            console.log("eventsStart", eventStarts[i])
+            console.log("event start", eventStart)
+            console.log("eventsEnd", eventEnds[i])
+            console.log("conflict occured")
+            break
+          }
+        }
+        if (noConflicts) {
+          console.log("got here")
+          calendarRef.current.getApi().addEvent({
+            id: createEventId(),
+            title: currentTask.text,
+            start: eventStart,
+            end: eventEnd,
+            allDay: false
+          })
+          eventStarts.push(eventStart)
+          eventEnds.push(eventEnd)
+          break
+        } else {
+          eventStart.setMinutes(eventStart.getMinutes() + 30)
+          eventEnd.setMinutes(eventEnd.getMinutes() + 30)
+        }
+      }
+    }
   }
 
   function handleDateSelect(selectInfo) {
@@ -107,7 +124,80 @@ export default function App() {
     }
   }
 
+  function handleShiftEvents() {
+    // get events to shift
+    let eventsToShift = []
+    let eventsToShiftStart = []
+    let eventsToShiftEnd = []
 
+    // get current event titles
+    let eventTitles = []
+    let eventStarts = []
+    let eventEnds = []
+
+    calendarRef.current.getApi().getEvents().map(event => {
+      if(!event.allDay) {
+        console.log("timed event", event.start)
+        let pre = event._instance.range.start
+        let post = event._instance.range.end
+        var copiedDate = new Date(event.start.getTime() + Math.abs(post.getTime()-pre.getTime()));
+        if(copiedDate < new Date()) {
+          eventsToShift.push(event.title)
+          
+          //set starting event start and end
+          let eventStart = new Date();
+          eventsToShiftStart.push(eventStart)
+          eventsToShiftEnd.push(new Date(eventStart.getTime() + Math.abs(post.getTime()-pre.getTime())))
+
+          //remove event from calendar
+          event.remove()
+        } else {
+          eventTitles.push(event.title)
+          eventStarts.push(event.start)
+          eventEnds.push(copiedDate)
+        }
+      }
+    })
+
+    for(let i = 0; i < eventsToShift.length; i++) {
+      
+      if (!eventTitles.includes(eventsToShift[i])) {
+        while (true) {
+          let noConflicts = true
+          for (let j = 0; j < eventStarts.length; j++) {
+            if ((eventsToShiftEnd[i] >= eventStarts[j] && eventsToShiftStart[i] <= eventEnds[j])) {
+              noConflicts = false
+              console.log("event end", eventsToShiftEnd[i])
+              console.log("eventsStart", eventStarts[j])
+              console.log("event start", eventsToShiftStart[i])
+              console.log("eventsEnd", eventEnds[j])
+              console.log("conflict occured")
+              break
+            }
+          }
+          if (noConflicts) {
+            console.log("got here")
+            calendarRef.current.getApi().addEvent({
+              id: createEventId(),
+              title: eventsToShift[i],
+              start: eventsToShiftStart[i],
+              end: eventsToShiftEnd[i],
+              allDay: false
+            })
+            eventStarts.push(eventsToShiftStart[i])
+            eventEnds.push(eventsToShiftEnd[i])
+            break
+          } else {
+            eventsToShiftStart[i].setMinutes(eventsToShiftStart[i].getMinutes() + 30)
+            eventsToShiftEnd[i].setMinutes(eventsToShiftEnd[i].getMinutes() + 30)
+          }
+        }
+      }
+      
+      
+      // addTaskWithoutConflicts(eventTitles, {text: eventsToShift[i]}, eventStarts, eventsToShiftEnd[i], eventsToShiftStart[i], eventEnds)
+    }
+  }
 
   function handleEventClick(clickInfo) {
     // if (confirm(`Are you sure you want to delete the event '${clickInfo.event.title}'`)) {
@@ -125,6 +215,7 @@ export default function App() {
         addingTasks={addingTasks}
         handleAddingTasksToggle={handleAddingTasksToggle}
         currentEvents={currentEvents}
+        handleShiftEvents={handleShiftEvents}
       />
       <>
         <div className='demo-app-main' style={addingTasks ? {display: 'none'} : {}}>
@@ -175,7 +266,7 @@ function renderEventContent(eventInfo) {
   )
 }
 
-function Sidebar({ addingTasks, handleAddingTasksToggle, currentEvents }) {
+function Sidebar({ addingTasks, handleAddingTasksToggle, currentEvents, handleShiftEvents }) {
   return (
     <div className='demo-app-sidebar' style={{padding: 8}}>
       <div className='demo-app-sidebar-section'>
@@ -198,12 +289,17 @@ function Sidebar({ addingTasks, handleAddingTasksToggle, currentEvents }) {
       {addingTasks ? <>
 
       </> : <div className='demo-app-sidebar-section'>
+        
         <h2>All Events ({currentEvents.length})</h2>
         <ul>
           {currentEvents.map((event) => (
             <SidebarEvent key={event.id} event={event} />
           ))}
         </ul>
+        <div >
+        <button onClick={handleShiftEvents} class="btn btn-primary">shift events?</button>
+        </div>
+
       </div>}
     </div>
   )
@@ -232,7 +328,7 @@ function CurrentTasks({ messages, setMessages }) {
 
   return (
     <>
-      <form className="form-for-chat" style={{
+      <form style={{
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'flex-start',
@@ -240,9 +336,10 @@ function CurrentTasks({ messages, setMessages }) {
         flexWrap: 'none',
         margin: 8
       }} onSubmit={handleOnSubmit} >
-        <TextField
+        <ThemeProvider theme={theme}>
+        <TextField 
           id="messageBox"
-          label="Task (v1: duration defaults to 30 min)"
+          label="Task (v1: duration defaults to 30 min, names must be unique)"
           variant="outlined"
           type="text"
           size="small"
@@ -255,19 +352,20 @@ function CurrentTasks({ messages, setMessages }) {
         <Button variant="contained" type="submit" size="medium" style={{ marginLeft: "8px" }} disabled={!newMessage}>
           Send
         </Button>
+        </ThemeProvider>
       </form>
       <div id="out" className="chat"
         style={{ marginBottom: "8px" }}
       // style={{height:"minContent"}}
       >
-        <div>
-          <ul>
+        <div style={{padding: 8}}>
+          <ul class="list-group">
             {
               //shows messages as long as they are not from the admin. (POTENTIALLY A PROBLEM LATER, but querying in firestore
               //requires that the orderby uses the same field as where, which makes this difficult)
               messages.map(message => {
                 if (message.username !== "admin")
-                  return <li key={message.id}>{message.text}</li>
+                  return <li class="list-group-item" key={message.id}>{message.text}</li>
               })
             }
           </ul>
